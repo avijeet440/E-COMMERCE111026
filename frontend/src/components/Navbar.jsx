@@ -1,9 +1,12 @@
 
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import api from "../api/axios.js";
 
 function Navbar() {
     const { user, logout } = useAuth();
+    const [cartCount, setCartCount] = useState(0);
 
     const linkClass = ({ isActive }) =>
         `text-sm transition-colors ${isActive
@@ -11,16 +14,50 @@ function Navbar() {
             : "text-gray-600 hover:text-black"
         }`;
 
+    // Fetch cart count only when the user is logged in.
+
+    useEffect(() => {
+        const fetchCartCount = async () => {
+            if (!user) {
+                setCartCount(0);
+                return;
+            }
+
+            try {
+                const response = await api.get("/api/cart");
+                const items = response.data.cart?.items || [];
+
+                const count = items.reduce(
+                    (total, item) => total + Number(item.quantity || 0),
+                    0
+                );
+
+                setCartCount(count);
+            } catch (error) {
+                console.error("Unable to load cart count:", error);
+            }
+        };
+
+        fetchCartCount();
+
+        window.addEventListener("cartUpdated", fetchCartCount);
+
+        return () => {
+            window.removeEventListener("cartUpdated", fetchCartCount);
+        };
+    }, [user]);
+
+
     return (
         <header className="sticky top-0 z-50 border-b bg-white">
-            <nav className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4">
+            <nav className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4">
 
                 {/* Brand */}
                 <Link to="/" className="text-3xl font-bold">
                     Bondor.
                 </Link>
 
-                {/* Visible to every visitor */}
+                {/* All navigation links remain visible */}
                 <div className="flex flex-wrap items-center gap-5">
                     <NavLink to="/" className={linkClass}>
                         Home
@@ -28,6 +65,41 @@ function Navbar() {
 
                     <NavLink to="/products" className={linkClass}>
                         Products
+                    </NavLink>
+
+                    <NavLink
+                        to="/cart"
+                        className={({ isActive }) =>
+                            `relative flex items-center gap-2 text-sm transition-colors ${isActive
+                                ? "font-semibold text-black"
+                                : "text-gray-600 hover:text-black"
+                            }`
+                        }
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="22"
+                            height="22"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                        >
+                            <circle cx="9" cy="21" r="1" />
+                            <circle cx="20" cy="21" r="1" />
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                        </svg>
+
+                        <span>Cart</span>
+
+                        {user && cartCount > 0 && (
+                            <span className="absolute -right-3 -top-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-600 px-1 text-xs font-bold text-white">
+                                {cartCount > 99 ? "99+" : cartCount}
+                            </span>
+                        )}
                     </NavLink>
 
                     <NavLink to="/checkout" className={linkClass}>
@@ -41,9 +113,13 @@ function Navbar() {
                     <NavLink to="/bucketlist" className={linkClass}>
                         Bucketlist
                     </NavLink>
+
+                    <NavLink to="/about" className={linkClass}>
+                        About
+                    </NavLink>
                 </div>
 
-                {/* Authentication controls */}
+                {/* Login and Logout controls */}
                 <div className="flex items-center gap-3">
                     {user ? (
                         <>
@@ -53,7 +129,7 @@ function Navbar() {
 
                             <button
                                 onClick={logout}
-                                className="w-full rounded-lg border border-black bg-[#f5f4f0] px-3 py-2 font-semibold text-black transition-colors duration-300 hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                className="rounded-lg border border-black bg-[#f5f4f0] px-3 py-2 font-semibold text-black transition hover:bg-black hover:text-white"
                             >
                                 Logout
                             </button>
@@ -62,14 +138,14 @@ function Navbar() {
                         <>
                             <Link
                                 to="/login"
-                                className="w-full rounded-lg border border-black bg-[#f5f4f0] px-3 py-2 font-semibold text-black transition-colors duration-300 hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                className="rounded-lg border border-black bg-[#f5f4f0] px-3 py-2 font-semibold text-black transition hover:bg-black hover:text-white"
                             >
                                 Login
                             </Link>
 
                             <Link
                                 to="/register"
-                                className="w-full rounded-lg border border-black bg-[#f5f4f0] px-2 py-2 font-semibold text-black transition-colors duration-300 hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                className="rounded-lg border border-black bg-[#f5f4f0] px-3 py-2 font-semibold text-black transition hover:bg-black hover:text-white"
                             >
                                 Register
                             </Link>
