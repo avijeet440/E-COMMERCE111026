@@ -13,16 +13,22 @@ import {
   Star,
 } from "lucide-react";
 import api from "../api/axios.js";
+import { useCart } from "../context/CartContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { addItem, error: cartError } = useCart();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState("");
 
   useEffect(() => {
     async function fetchProduct() {
@@ -31,7 +37,6 @@ export default function ProductDetails() {
         setError("");
 
         const response = await api.get(`/api/products/${id}`);
-        console.log(response)
         const data = response.data;
 
         setProduct(data.product || data.data || data);
@@ -48,43 +53,27 @@ export default function ProductDetails() {
     fetchProduct();
   }, [id]);
 
-  function addToCart() {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
+  async function addToCart() {
+    if (!user) {
       navigate("/login");
-      return;
+      return false;
     }
 
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    setAdding(true);
+    setAddError("");
 
-    const existingItem = cart.find(
-      (item) => item.productId === product._id
-    );
-
-    let updatedCart;
-
-    if (existingItem) {
-      updatedCart = cart.map((item) =>
-        item.productId === product._id
-          ? { ...item, quantity: item.quantity + quantity }
-          : item
+    try {
+      await addItem(product._id, quantity);
+      setAdded(true);
+      return true;
+    } catch (error) {
+      setAddError(
+        error.response?.data?.message || "Unable to add this product to your cart."
       );
-    } else {
-      updatedCart = [
-        ...cart,
-        {
-          productId: product._id,
-          name: product.name || product.title,
-          price: product.price,
-          image: product.image,
-          quantity,
-        },
-      ];
+      return false;
+    } finally {
+      setAdding(false);
     }
-
-    localStorage.setItem("cart", JSON.stringify(updatedCart));
-    setAdded(true);
   }
 
   if (loading) {
@@ -258,20 +247,21 @@ export default function ProductDetails() {
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
-                disabled={stock <= 0}
+                disabled={stock <= 0 || adding}
                 onClick={addToCart}
                 className="flex items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ShoppingCart size={18} />
-                {added ? "Added to cart" : "Add to cart"}
+                {adding ? "Adding..." : added ? "Added to cart" : "Add to cart"}
               </button>
 
               <button
                 type="button"
-                disabled={stock <= 0}
-                onClick={() => {
-                  addToCart();
-                  navigate("/checkout");
+                disabled={stock <= 0 || adding}
+                onClick={async () => {
+                  if (await addToCart()) {
+                    navigate("/checkout");
+                  }
                 }}
                 className="rounded-full bg-gray-900 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -281,7 +271,12 @@ export default function ProductDetails() {
 
             {added && (
               <p className="mt-3 text-sm text-green-600">
-                Product added to your local cart.
+                Product added to your cart.
+              </p>
+            )}
+            {(addError || cartError) && (
+              <p role="alert" className="mt-3 text-sm text-red-600">
+                {addError || cartError}
               </p>
             )}
 

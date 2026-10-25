@@ -1,13 +1,12 @@
 
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { useCart } from "../context/CartContext.jsx";
 
 const Checkout = () => {
     const navigate = useNavigate();
-
-    const [cartItems, setCartItems] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { items: cartItems, loading, error: cartError } = useCart();
     const [placingOrder, setPlacingOrder] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -21,32 +20,6 @@ const Checkout = () => {
     });
 
     const [paymentMethod, setPaymentMethod] = useState("cod");
-
-    // Load the logged-in user's cart
-    useEffect(() => {
-        const fetchCart = async () => {
-            try {
-                setLoading(true);
-                setError("");
-
-                const response = await api.get("/api/cart");
-
-                // Supports either { cart: { items: [] } }
-                // or { items: [] }, depending on the cart controller.
-                const cart = response.data.cart || response.data;
-                setCartItems(cart.items || []);
-            } catch (err) {
-                setError(
-                    err.response?.data?.message ||
-                    "Unable to load your cart. Please log in and try again."
-                );
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchCart();
-    }, []);
 
     // Calculate the subtotal from the loaded cart items
     const totalPrice = cartItems.reduce((total, item) => {
@@ -93,6 +66,7 @@ const Checkout = () => {
             const orderId = response.data.order?._id;
 
             if (orderId) {
+                window.dispatchEvent(new Event("cartUpdated"));
                 navigate(`/orders/${orderId}`, {
                     state: { orderPlaced: true },
                 });
@@ -130,12 +104,12 @@ const Checkout = () => {
                     </p>
                 </div>
 
-                {error && (
+                {(error || cartError) && (
                     <div
                         role="alert"
                         className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
                     >
-                        {error}
+                        {error || cartError}
                     </div>
                 )}
 

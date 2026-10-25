@@ -1,52 +1,17 @@
 
-import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import api from "../api/axios.js";
+import { useCart } from "../context/CartContext.jsx";
 
 function Navbar() {
     const { user, logout } = useAuth();
-    const [cartCount, setCartCount] = useState(0);
+    const { itemCount: cartCount } = useCart();
 
     const linkClass = ({ isActive }) =>
         `text-sm transition-colors ${isActive
             ? "font-semibold text-black"
             : "text-gray-600 hover:text-black"
         }`;
-
-    // Fetch cart count only when the user is logged in.
-
-    useEffect(() => {
-        const fetchCartCount = async () => {
-            if (!user) {
-                setCartCount(0);
-                return;
-            }
-
-            try {
-                const response = await api.get("/api/cart");
-                const items = response.data.cart?.items || [];
-
-                const count = items.reduce(
-                    (total, item) => total + Number(item.quantity || 0),
-                    0
-                );
-
-                setCartCount(count);
-            } catch (error) {
-                console.error("Unable to load cart count:", error);
-            }
-        };
-
-        fetchCartCount();
-
-        window.addEventListener("cartUpdated", fetchCartCount);
-
-        return () => {
-            window.removeEventListener("cartUpdated", fetchCartCount);
-        };
-    }, [user]);
-
 
     return (
         <header className="sticky top-0 z-50 border-b bg-white">

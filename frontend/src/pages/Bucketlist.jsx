@@ -71,6 +71,7 @@ function Bucketlist() {
                 productId: product._id,
                 quantity: 1,
             });
+            window.dispatchEvent(new Event("cartUpdated"));
 
             setNotice(`${product.name} added to your cart.`);
         } catch (err) {

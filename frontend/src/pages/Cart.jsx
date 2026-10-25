@@ -1,46 +1,27 @@
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import api from "../api/axios.js";
+import { useCart } from "../context/CartContext.jsx";
 
 function Cart() {
-    const [items, setItems] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-
-    const notifyCartChanged = () => {
-        window.dispatchEvent(new Event("cartUpdated"));
-    };
-
-    const fetchCart = useCallback(async () => {
-        try {
-            setError("");
-            const response = await api.get("/api/cart");
-            const cart = response.data.cart || response.data;
-            setItems(cart.items || []);
-        } catch (err) {
-            setError(
-                err.response?.data?.message ||
-                "Unable to load your cart. Please log in again."
-            );
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchCart();
-    }, [fetchCart]);
+    const {
+        items,
+        loading,
+        error,
+        updateItem,
+        removeItem: removeCartItem,
+        clearCart,
+    } = useCart();
+    const [actionError, setActionError] = useState("");
 
     const updateQuantity = async (productId, quantity) => {
         if (quantity < 1) return;
 
         try {
-            await api.put(`/api/cart/${productId}`, { quantity });
-            await fetchCart();
-            notifyCartChanged();
+            setActionError("");
+            await updateItem(productId, quantity);
         } catch (err) {
-            setError(
+            setActionError(
                 err.response?.data?.message ||
                 "Unable to update the quantity."
             );
@@ -49,11 +30,10 @@ function Cart() {
 
     const removeItem = async (productId) => {
         try {
-            await api.delete(`/api/cart/${productId}`);
-            await fetchCart();
-            notifyCartChanged();
+            setActionError("");
+            await removeCartItem(productId);
         } catch (err) {
-            setError(
+            setActionError(
                 err.response?.data?.message ||
                 "Unable to remove this product."
             );
@@ -74,9 +54,9 @@ function Cart() {
         <main className="mx-auto max-w-5xl px-4 py-10">
             <h1 className="mb-8 text-3xl font-bold">Shopping Cart</h1>
 
-            {error && (
+            {(actionError || error) && (
                 <p className="mb-5 rounded-lg bg-red-100 p-3 text-red-700">
-                    {error}
+                    {actionError || error}
                 </p>
             )}
 
@@ -154,6 +134,12 @@ function Cart() {
                                                 }
                                                 className="rounded border px-3 py-1"
                                                 aria-label="Increase quantity"
+                                                disabled={quantity >= Number(product.stock ?? Infinity)}
+                                                title={
+                                                    quantity >= Number(product.stock ?? Infinity)
+                                                        ? "No more stock available"
+                                                        : undefined
+                                                }
                                             >
                                                 +
                                             </button>
@@ -199,11 +185,10 @@ function Cart() {
                             type="button"
                             onClick={async () => {
                                 try {
-                                    await api.delete("/api/cart");
-                                    await fetchCart();
-                                    notifyCartChanged();
+                                    setActionError("");
+                                    await clearCart();
                                 } catch (err) {
-                                    setError(
+                                    setActionError(
                                         err.response?.data?.message ||
                                         "Unable to clear your cart."
                                     );
