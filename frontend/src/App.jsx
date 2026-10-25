@@ -23,15 +23,15 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<Products />} />
-        <Route path="/products/:id" element={<ProductDetails />} />
-        <Route path="/login" element={<Login />} />
+        <Route path='/products/:id' element={<ProductDetails />} />
+        <Route path="/orders/:id" element={<OrderDetails />} />        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
-          path="/forgot-password" element={<ForgotPassword />}  />
+          path="/forgot-password" element={<ForgotPassword />} />
 
         <Route
           path="/reset-password/:token"
-          element={<ResetPassword />}/>
+          element={<ResetPassword />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/checkout" element={<Checkout />} />
@@ -40,7 +40,7 @@ const App = () => {
           <Route path='/cart' element={<Cart />} />
           <Route path="/bucketlist" element={<Bucketlist />} />
         </Route>
-        
+
       </Routes>
 
     </>

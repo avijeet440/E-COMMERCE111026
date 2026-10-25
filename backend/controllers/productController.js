@@ -40,14 +40,16 @@ const getProducts = async (req, res, next) => {
                 {
                     name: {
                         $regex: search,
-                        $options: 'i',
+                        $options: "i",
                     },
+                },
+                {
                     description: {
                         $regex: search,
-                        $options: 'i',
-                    }
-                }
-            ]
+                        $options: "i",
+                    },
+                },
+            ];
         }
 
         //Category Filter
@@ -79,14 +81,12 @@ const getProducts = async (req, res, next) => {
 
         //Sorting
         let sortOptions = {};
-        if (sort === 'price_asc') {
-            sortOptions.price = 1;
 
-        }
-        if (sort === 'price_desc') {
+        if (sort === "price_asc") {
+            sortOptions.price = 1;
+        } else if (sort === "price_desc") {
             sortOptions.price = -1;
-        }
-        if (sort === 'newest') {
+        } else {
             sortOptions.createdAt = -1;
         }
 
@@ -99,8 +99,12 @@ const getProducts = async (req, res, next) => {
 
         //Get Products
 
-        const products = await Product.find(filter).populate("brand", "name").sort("category", "name").sort(sortOptions).skip(skip).limit(perPage)
-
+        const products = await Product.find(filter)
+            .populate("brand", "name")
+            .populate("category", "name")
+            .sort(sortOptions)
+            .skip(skip)
+            .limit(perPage);
         //Count Total
         const total = await Product.countDocuments(filter);
         const totalPage = Math.ceil(total / perPage);
